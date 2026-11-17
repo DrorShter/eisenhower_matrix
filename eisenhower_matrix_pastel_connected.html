@@ -1,0 +1,2074 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>מטריצת אייזנהאואר | Eisenhower Matrix Pastel</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Heebo & Rubik -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@300;400;500;600;700;800&family=Rubik:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Google Identity Services (Official OAuth 2.0 Popup for Google Sign-In & Google Drive API) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Heebo', 'Rubik', 'sans-serif'],
+          },
+          colors: {
+            pastel: {
+              redBg: '#FFF0F0',
+              redBorder: '#FBC4C4',
+              redAccent: '#E06D6D',
+              blueBg: '#F0F7FF',
+              blueBorder: '#BAE0FD',
+              blueAccent: '#4D96FF',
+              amberBg: '#FFFDF0',
+              amberBorder: '#FCEAB2',
+              amberAccent: '#E6A23C',
+              greenBg: '#F2FAF5',
+              greenBorder: '#BDE8CD',
+              greenAccent: '#52B788',
+              card: '#FFFFFF',
+              dark: '#2D3748',
+              subtle: '#64748B'
+            }
+          },
+          boxShadow: {
+            'soft': '0 4px 20px -2px rgba(100, 116, 139, 0.08), 0 2px 6px -1px rgba(100, 116, 139, 0.04)',
+            'floating': '0 10px 30px -4px rgba(0, 0, 0, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.04)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Heebo', sans-serif;
+      background-color: #F8FAFC;
+      background-image: radial-gradient(#E2E8F0 1px, transparent 1px);
+      background-size: 24px 24px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Custom Scrollbar for quadrants */
+    .task-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .task-container::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .task-container::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    .task-container::-webkit-scrollbar-thumb:hover {
+      background: #94A3B8;
+    }
+
+    /* Task Card Dragging Animation */
+    .task-card.dragging {
+      opacity: 0.4;
+      transform: scale(0.98);
+    }
+    .quadrant-dropzone.dragover {
+      border-color: #6366F1 !important;
+      background-color: rgba(99, 102, 241, 0.05);
+    }
+
+    /* Fireworks Canvas overlay */
+    #fireworksCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between pb-24 md:pb-28 select-none">
+  <canvas id="fireworksCanvas"></canvas>
+
+  <!-- Top Navigation / Header -->
+  <header class="w-full bg-white/80 backdrop-blur-md sticky top-0 z-40 border-b border-slate-100 shadow-sm transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between gap-1.5 sm:gap-3">
+      <!-- Title & Branding with Color Palette Button -->
+      <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+        <div class="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gradient-to-tr from-indigo-200 via-rose-200 to-amber-200 p-0.5 shadow-sm flex items-center justify-center shrink-0">
+          <div class="w-full h-full bg-white rounded-[10px] sm:rounded-[14px] flex items-center justify-center">
+            <i data-lucide="layout-grid" class="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500"></i>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <h1 class="text-sm sm:text-xl font-bold bg-gradient-to-r from-slate-800 via-indigo-900 to-slate-700 bg-clip-text text-transparent whitespace-nowrap">
+            בואו נהיה יעילים!
+          </h1>
+          <!-- Pastel Color Theme Switcher Button -->
+          <button id="paletteModalBtn" title="שינוי ערכת צבעי פסטל" class="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-lg sm:rounded-xl border border-slate-200 bg-slate-50 hover:bg-purple-50 hover:border-purple-200 text-purple-600 transition active:scale-95 shadow-xs shrink-0">
+            <i data-lucide="palette" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Search, Action buttons & Google Login / Guest Status Badge -->
+      <div class="flex items-center gap-1 sm:gap-2.5 shrink-0">
+        <!-- Mobile Layout Toggle (List vs 2x2 Grid) -->
+        <button id="mobileLayoutToggleBtn" class="md:hidden flex items-center justify-center w-7 h-7 rounded-lg border border-slate-200 bg-slate-50 text-slate-700 text-xs transition active:scale-95 shadow-xs shrink-0" title="החלף תצוגת רשת/רשימה">
+          <i data-lucide="grid-2x2" class="w-3.5 h-3.5 text-indigo-500" id="layoutToggleIcon"></i>
+        </button>
+
+        <!-- Quick Search Bar (Collapsible / Compact) -->
+        <div class="relative hidden sm:block">
+          <input id="searchInput" type="text" placeholder="חיפוש משימה..." class="w-36 md:w-48 bg-slate-50 border border-slate-200 rounded-xl pr-8 pl-3 py-1.5 text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:bg-white transition">
+          <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute right-2.5 top-1/2 -translate-y-1/2"></i>
+        </div>
+
+        <!-- Export PDF / Print Button -->
+        <button id="exportPdfBtn" title="ייצוא והדפסה ל-PDF" class="flex items-center gap-1 px-2 py-1.5 sm:px-2.5 rounded-lg sm:rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 text-xs font-medium transition active:scale-95 shadow-sm shrink-0">
+          <i data-lucide="printer" class="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-600"></i>
+          <span class="hidden sm:inline">ייצוא PDF</span>
+        </button>
+
+        <!-- Clear Completed Tasks Button -->
+        <button id="clearCompletedBtn" title="נקה משימות שהושלמו" class="hidden xs:flex sm:flex items-center gap-1.5 px-2 py-1.5 sm:px-2.5 rounded-lg sm:rounded-xl border border-slate-200 bg-slate-50 hover:bg-rose-50 hover:border-rose-200 hover:text-rose-600 text-slate-600 text-xs font-medium transition active:scale-95 shrink-0">
+          <i data-lucide="check-check" class="w-3.5 h-3.5 sm:w-4 sm:h-4"></i>
+          <span class="hidden md:inline">נקה שהושלמו</span>
+        </button>
+
+        <!-- Google Account Login / Guest Mode Status Button -->
+        <button id="syncModalBtn" title="התחברות לחשבון Google וסנכרון ל-Google Drive" class="flex items-center gap-1.5 px-2.5 py-1.5 sm:px-3 rounded-lg sm:rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 text-xs sm:text-sm font-medium transition shadow-sm active:scale-95 shrink-0">
+          <img id="headerUserAvatar" src="" alt="" class="w-5 h-5 rounded-full object-cover border border-slate-200 hidden shrink-0">
+          <span id="headerUserBadge" class="w-5 h-5 rounded-full bg-indigo-600 text-white text-[11px] font-bold items-center justify-center hidden shrink-0">G</span>
+          <svg id="googleHeaderIcon" class="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+          </svg>
+          <span id="googleHeaderLabel" class="hidden sm:inline font-semibold text-xs">מצב אורח • התחבר</span>
+          <span id="googleHeaderShortLabel" class="sm:hidden text-[11px] font-semibold">אורח • התחבר</span>
+          <span id="syncIndicator" class="w-2 h-2 rounded-full bg-amber-400" title="סטטוס חיבור"></span>
+        </button>
+
+        <!-- Quick Add Master Button -->
+        <button id="openNewTaskModalBtn" class="flex items-center gap-1 sm:gap-1.5 px-2.5 py-1.5 sm:px-3.5 rounded-lg sm:rounded-xl bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white text-xs sm:text-sm font-semibold transition shadow-md shadow-indigo-100 shrink-0">
+          <i data-lucide="plus" class="w-3.5 h-3.5 sm:w-4 sm:h-4 stroke-[2.5]"></i>
+          <span class="hidden xs:inline sm:inline">משימה חדשה</span>
+          <span class="xs:hidden sm:hidden text-[11px]">חדשה</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Daily Progress Tracker Bar -->
+    <div class="max-w-7xl mx-auto px-3 sm:px-6 pb-2 pt-0.5 flex items-center justify-between gap-2 sm:gap-3 text-xs text-slate-600">
+      <div class="flex items-center gap-1.5 shrink-0">
+        <span class="font-medium text-[10px] sm:text-[11px] text-slate-500">התקדמות יומית:</span>
+        <span id="progressStats" class="font-bold text-slate-700 text-[11px] sm:text-xs">0/0 (0%)</span>
+      </div>
+      <div class="flex-1 max-w-[140px] sm:max-w-md bg-slate-100 rounded-full h-1.5 sm:h-2 overflow-hidden border border-slate-200/60">
+        <div id="progressBar" class="bg-gradient-to-r from-emerald-400 to-indigo-500 h-full rounded-full transition-all duration-500 ease-out" style="width: 0%"></div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile View Quadrant Switcher Tabs -->
+  <div id="mobileTabsContainer" class="md:hidden px-4 pt-3 pb-1">
+    <div class="flex bg-slate-200/70 p-1 rounded-2xl gap-1 text-xs font-semibold overflow-x-auto scrollbar-none whitespace-nowrap">
+      <button class="mobile-tab-btn flex-shrink-0 py-2 px-3 rounded-xl text-center transition bg-white shadow-sm text-slate-800" data-filter="all">הכל</button>
+      <button class="mobile-tab-btn flex-shrink-0 py-2 px-3 rounded-xl text-center transition text-slate-600" data-filter="q1">דחוף וחשוב</button>
+      <button class="mobile-tab-btn flex-shrink-0 py-2 px-3 rounded-xl text-center transition text-slate-600" data-filter="q2">חשוב ולא דחוף</button>
+      <button class="mobile-tab-btn flex-shrink-0 py-2 px-3 rounded-xl text-center transition text-slate-600" data-filter="q3">דחוף ולא חשוב</button>
+      <button class="mobile-tab-btn flex-shrink-0 py-2 px-3 rounded-xl text-center transition text-slate-600" data-filter="q4">לא חשוב ולא דחוף</button>
+    </div>
+  </div>
+
+  <!-- Main Eisenhower 2x2 Grid -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex-1 w-full">
+    <div id="mainGridContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-5 h-full">
+
+      <!-- Quadrant 1: Urgent & Important -->
+      <section id="quadrant-q1" class="quadrant-card flex flex-col bg-pastel-redBg/60 border border-pastel-redBorder rounded-3xl p-4 sm:p-5 shadow-soft transition-all duration-300">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-pastel-redBorder/60">
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-xl bg-pastel-redAccent/20 text-pastel-redAccent flex items-center justify-center font-bold text-xs">
+              1
+            </span>
+            <h2 class="font-bold text-slate-800 text-sm sm:text-base">
+              דחוף וחשוב
+            </h2>
+          </div>
+          <span id="badge-q1" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-pastel-redAccent shadow-xs border border-pastel-redBorder">0</span>
+        </div>
+
+        <!-- Inline Quick Add Input -->
+        <div class="mt-3 relative">
+          <input type="text" data-quadrant="q1" placeholder="הוסף משימה דחופה וחשובה..." class="quick-add-input w-full bg-white/90 border border-pastel-redBorder/80 rounded-2xl pl-10 pr-3.5 py-2 text-xs sm:text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pastel-redAccent/40 shadow-xs">
+          <button data-quadrant="q1" class="quick-add-btn absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg bg-pastel-redAccent text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Task List -->
+        <div id="list-q1" data-quadrant="q1" class="quadrant-dropzone task-container flex-1 overflow-y-auto space-y-2.5 mt-3 min-h-[140px] max-h-[420px] p-1 rounded-2xl transition">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Quadrant 2: Important & Not Urgent -->
+      <section id="quadrant-q2" class="quadrant-card flex flex-col bg-pastel-blueBg/60 border border-pastel-blueBorder rounded-3xl p-4 sm:p-5 shadow-soft transition-all duration-300">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-pastel-blueBorder/60">
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-xl bg-pastel-blueAccent/20 text-pastel-blueAccent flex items-center justify-center font-bold text-xs">
+              2
+            </span>
+            <h2 class="font-bold text-slate-800 text-sm sm:text-base">
+              חשוב ולא דחוף
+            </h2>
+          </div>
+          <span id="badge-q2" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-pastel-blueAccent shadow-xs border border-pastel-blueBorder">0</span>
+        </div>
+
+        <!-- Inline Quick Add Input -->
+        <div class="mt-3 relative">
+          <input type="text" data-quadrant="q2" placeholder="הוסף משימה חשובה לתכנון..." class="quick-add-input w-full bg-white/90 border border-pastel-blueBorder/80 rounded-2xl pl-10 pr-3.5 py-2 text-xs sm:text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pastel-blueAccent/40 shadow-xs">
+          <button data-quadrant="q2" class="quick-add-btn absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg bg-pastel-blueAccent text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Task List -->
+        <div id="list-q2" data-quadrant="q2" class="quadrant-dropzone task-container flex-1 overflow-y-auto space-y-2.5 mt-3 min-h-[140px] max-h-[420px] p-1 rounded-2xl transition">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Quadrant 3: Urgent & Not Important -->
+      <section id="quadrant-q3" class="quadrant-card flex flex-col bg-pastel-amberBg/60 border border-pastel-amberBorder rounded-3xl p-4 sm:p-5 shadow-soft transition-all duration-300">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-pastel-amberBorder/60">
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-xl bg-pastel-amberAccent/20 text-pastel-amberAccent flex items-center justify-center font-bold text-xs">
+              3
+            </span>
+            <h2 class="font-bold text-slate-800 text-sm sm:text-base">
+              דחוף ולא חשוב
+            </h2>
+          </div>
+          <span id="badge-q3" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-pastel-amberAccent shadow-xs border border-pastel-amberBorder">0</span>
+        </div>
+
+        <!-- Inline Quick Add Input -->
+        <div class="mt-3 relative">
+          <input type="text" data-quadrant="q3" placeholder="הוסף משימה להאצלה..." class="quick-add-input w-full bg-white/90 border border-pastel-amberBorder/80 rounded-2xl pl-10 pr-3.5 py-2 text-xs sm:text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pastel-amberAccent/40 shadow-xs">
+          <button data-quadrant="q3" class="quick-add-btn absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg bg-pastel-amberAccent text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Task List -->
+        <div id="list-q3" data-quadrant="q3" class="quadrant-dropzone task-container flex-1 overflow-y-auto space-y-2.5 mt-3 min-h-[140px] max-h-[420px] p-1 rounded-2xl transition">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Quadrant 4: Not Urgent & Not Important -->
+      <section id="quadrant-q4" class="quadrant-card flex flex-col bg-pastel-greenBg/60 border border-pastel-greenBorder rounded-3xl p-4 sm:p-5 shadow-soft transition-all duration-300">
+        <!-- Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-pastel-greenBorder/60">
+          <div class="flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-xl bg-pastel-greenAccent/20 text-pastel-greenAccent flex items-center justify-center font-bold text-xs">
+              4
+            </span>
+            <h2 class="font-bold text-slate-800 text-sm sm:text-base">
+              לא חשוב ולא דחוף
+            </h2>
+          </div>
+          <span id="badge-q4" class="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-pastel-greenAccent shadow-xs border border-pastel-greenBorder">0</span>
+        </div>
+
+        <!-- Inline Quick Add Input -->
+        <div class="mt-3 relative">
+          <input type="text" data-quadrant="q4" placeholder="הוסף מסיח דעת לצמצום..." class="quick-add-input w-full bg-white/90 border border-pastel-greenBorder/80 rounded-2xl pl-10 pr-3.5 py-2 text-xs sm:text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-pastel-greenAccent/40 shadow-xs">
+          <button data-quadrant="q4" class="quick-add-btn absolute left-2 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg bg-pastel-greenAccent text-white flex items-center justify-center hover:opacity-90 active:scale-95 transition">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+
+        <!-- Task List -->
+        <div id="list-q4" data-quadrant="q4" class="quadrant-dropzone task-container flex-1 overflow-y-auto space-y-2.5 mt-3 min-h-[140px] max-h-[420px] p-1 rounded-2xl transition">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Sticky Bottom Celebration Banner -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-lg border-t border-slate-200/80 shadow-[0_-8px_30px_rgba(0,0,0,0.06)] px-3 py-2 sm:px-4 sm:py-3">
+    <div class="max-w-4xl mx-auto flex items-center justify-between gap-2 sm:gap-3">
+      <!-- Encouragement Text -->
+      <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+        <div class="w-7 h-7 sm:w-9 sm:h-9 rounded-xl sm:rounded-2xl bg-amber-100/90 text-amber-600 flex items-center justify-center shrink-0 shadow-inner">
+          <i data-lucide="trophy" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+        </div>
+        <div class="truncate">
+          <h3 class="text-xs sm:text-base font-extrabold text-slate-800 tracking-tight flex items-center gap-1 truncate">
+            <span>סיימת משימה? אליפות!</span>
+            <span class="shrink-0 animate-bounce text-xs sm:text-sm">🎉</span>
+          </h3>
+          <p class="text-[10px] sm:text-xs text-slate-500 font-medium truncate">
+            כל צעד קטן מקרב אותך להצלחה
+          </p>
+        </div>
+      </div>
+
+      <!-- Fireworks Trigger Button -->
+      <button id="fireworksBtn" class="shrink-0 group relative overflow-hidden flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-6 sm:py-3 rounded-xl sm:rounded-2xl bg-gradient-to-r from-amber-400 via-rose-400 to-indigo-500 text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-xl hover:scale-105 active:scale-95 transition duration-300">
+        <span class="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
+        <i data-lucide="sparkles" class="w-3.5 h-3.5 sm:w-4 sm:h-4 animate-spin text-white" style="animation-duration: 4s;"></i>
+        <span class="relative whitespace-nowrap">כל הכבוד! 🎆</span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Modal: Color Themes Picker -->
+  <div id="paletteModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-floating border border-slate-100 relative text-right animate-in fade-in zoom-in-95 duration-200">
+      <button id="closePaletteModalBtn" class="absolute left-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <div class="flex items-center gap-2.5 mb-2">
+        <div class="w-9 h-9 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center">
+          <i data-lucide="palette" class="w-5 h-5"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800">בחירת ערכת צבעי פסטל</h3>
+          <p class="text-xs text-slate-500">בחר את האווירה שהכי נעימה לך בעין</p>
+        </div>
+      </div>
+
+      <div class="space-y-2.5 mt-4">
+        <!-- Theme 1 -->
+        <button class="theme-select-btn w-full flex items-center justify-between p-3 rounded-2xl border-2 transition active:scale-[0.98]" data-theme="classic">
+          <div class="flex items-center gap-2.5">
+            <div class="flex -space-x-1.5 rtl:space-x-reverse">
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FFF0F0"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#F0F7FF"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FFFDF0"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#F2FAF5"></span>
+            </div>
+            <span class="text-xs font-bold text-slate-700">פסטל קלאסי</span>
+          </div>
+          <span class="theme-check text-indigo-600 text-xs font-bold hidden">✓ נבחר</span>
+        </button>
+
+        <!-- Theme 2 -->
+        <button class="theme-select-btn w-full flex items-center justify-between p-3 rounded-2xl border-2 transition active:scale-[0.98]" data-theme="lavender">
+          <div class="flex items-center gap-2.5">
+            <div class="flex -space-x-1.5 rtl:space-x-reverse">
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FBF0FF"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#F0F4FF"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FFF0F5"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#EDFBF9"></span>
+            </div>
+            <span class="text-xs font-bold text-slate-700">לבנדר ולילך מרגיע</span>
+          </div>
+          <span class="theme-check text-indigo-600 text-xs font-bold hidden">✓ נבחר</span>
+        </button>
+
+        <!-- Theme 3 -->
+        <button class="theme-select-btn w-full flex items-center justify-between p-3 rounded-2xl border-2 transition active:scale-[0.98]" data-theme="nordic">
+          <div class="flex items-center gap-2.5">
+            <div class="flex -space-x-1.5 rtl:space-x-reverse">
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FDF3EC"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#F0F7F6"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FBF8EE"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#EFF7ED"></span>
+            </div>
+            <span class="text-xs font-bold text-slate-700">סקנדינבי טבעי</span>
+          </div>
+          <span class="theme-check text-indigo-600 text-xs font-bold hidden">✓ נבחר</span>
+        </button>
+
+        <!-- Theme 4 -->
+        <button class="theme-select-btn w-full flex items-center justify-between p-3 rounded-2xl border-2 transition active:scale-[0.98]" data-theme="sunset">
+          <div class="flex items-center gap-2.5">
+            <div class="flex -space-x-1.5 rtl:space-x-reverse">
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FFF2EB"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#F3F2FF"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#FFF9E6"></span>
+              <span class="w-5 h-5 rounded-full border border-white shadow-xs" style="background:#EBF9F7"></span>
+            </div>
+            <span class="text-xs font-bold text-slate-700">שקיעה אפרסקית</span>
+          </div>
+          <span class="theme-check text-indigo-600 text-xs font-bold hidden">✓ נבחר</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Official Google Account Login & Real Google Drive Sync -->
+  <div id="syncModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-slate-100 relative text-right animate-in fade-in zoom-in-95 duration-200 my-auto">
+      <button id="closeSyncModalBtn" class="absolute left-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Header with Official Google Icon -->
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-11 h-11 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-center justify-center shrink-0 shadow-xs">
+          <svg class="w-6 h-6" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-base font-bold text-slate-800">חיבור לחשבון Google Drive</h3>
+          <p class="text-xs text-slate-500">שמירה ישירה בשרת ה-Drive של חשבון הגוגל שלך</p>
+        </div>
+      </div>
+
+      <!-- VIEW 1: GUEST MODE & ONE-CLICK GOOGLE SIGN-IN -->
+      <div id="guestLoginView" class="space-y-4">
+        <!-- Guest Mode Banner -->
+        <div class="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3.5">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+              פעיל כעת: מצב אורח (שמור על המכשיר)
+            </span>
+            <span id="guestTasksCountBadge" class="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-white text-amber-700 border border-amber-200">0 משימות</span>
+          </div>
+          <p class="text-[11px] text-amber-800/90 leading-relaxed">
+            כל המשימות שתוסיפי במצב אורח נשמרות כעת על המכשיר. ברגע שתתחברי עם חשבון ה-Google שלך, הן יתווספו אוטומטית לקובץ המשימות שלך ב-<strong>Google Drive</strong>.
+          </p>
+        </div>
+
+        <!-- Single Official Google Sign-In Button -->
+        <button id="googleRealSignInBtn" type="button" class="w-full flex items-center justify-center gap-3 bg-white hover:bg-slate-50 active:scale-[0.99] text-slate-800 font-bold text-sm py-3.5 px-5 rounded-2xl border-2 border-slate-200 hover:border-indigo-300 shadow-sm transition">
+          <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96z"/>
+          </svg>
+          <span>התחבר עם חשבון Google</span>
+        </button>
+
+        <button id="continueAsGuestBtn" type="button" class="w-full bg-slate-100 hover:bg-slate-200/80 text-slate-700 font-semibold text-xs py-2.5 px-4 rounded-xl transition">
+          המשך במצב אורח במכשיר זה
+        </button>
+
+        <!-- One-time Admin Setup Panel (Hidden unless GOOGLE_CLIENT_ID is not yet configured) -->
+        <div id="adminOAuthSetupPanel" class="hidden pt-3 border-t border-slate-100 text-xs space-y-2.5">
+          <div class="bg-indigo-50/70 border border-indigo-100 rounded-xl p-3 text-[11px] text-slate-700 space-y-1 leading-relaxed">
+            <p class="font-bold text-indigo-950">הגדרה חד-פעמית (למנהל הקוד):</p>
+            <p>כדי ש-Google תאפשר פתיחת חלון התחברות רשמי ושמירה בשרת ה-Drive ללא שרת צד-שלישי, הדבק כאן (או בקבוע <code class="bg-white px-1 rounded">GOOGLE_CLIENT_ID</code> בתחילת הקוד) את ה-OAuth Client ID מ-Google Cloud Console:</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input id="adminClientIdInput" type="text" dir="ltr" placeholder="xxxx.apps.googleusercontent.com" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+            <button id="saveAdminClientIdBtn" type="button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-xl transition shrink-0">
+              שמור והתחבר
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: LOGGED-IN GOOGLE ACCOUNT VIEW -->
+      <div id="loggedInAccountView" class="hidden space-y-4">
+        <div class="bg-gradient-to-br from-emerald-50/80 via-white to-indigo-50/50 border border-emerald-200/80 rounded-2xl p-4">
+          <div class="flex items-center gap-3 mb-3">
+            <img id="accountAvatarImg" src="" alt="" class="w-11 h-11 rounded-full border border-emerald-200 object-cover hidden shrink-0">
+            <div id="accountAvatarInitial" class="w-11 h-11 rounded-2xl bg-indigo-600 text-white font-extrabold text-base flex items-center justify-center shrink-0 shadow-sm">
+              G
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h4 id="accountDisplayName" class="text-sm font-bold text-slate-800 truncate">משתמש מחובר</h4>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 shrink-0">Google Drive</span>
+              </div>
+              <p id="accountEmailText" class="text-xs text-slate-500 truncate" dir="ltr"></p>
+            </div>
+          </div>
+
+          <div class="bg-white/90 border border-slate-200/70 rounded-xl px-3 py-2 flex items-center justify-between text-xs">
+            <span class="text-slate-600 flex items-center gap-1.5">
+              <span id="accountSyncDot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block"></span>
+              <span id="accountLastSyncInfo">שמור ב-Google Drive שלך (eisenhower_tasks_sync.json)</span>
+            </span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button id="manualSyncAccountBtn" type="button" class="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <span>סנכרן עכשיו מ-Google Drive</span>
+          </button>
+          <button id="logoutAccountBtn" type="button" class="bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-600 border border-slate-200 hover:border-rose-200 font-bold text-xs sm:text-sm py-2.5 px-4 rounded-xl transition active:scale-95">
+            התנתק
+          </button>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-[11px] text-slate-400">
+        <span class="flex items-center gap-1.5">
+          <span id="syncFooterDot" class="w-2 h-2 rounded-full bg-amber-400 inline-block"></span>
+          <span id="syncFooterText">מצב אורח (שמור במכשיר)</span>
+        </span>
+        <div class="flex items-center gap-3">
+          <button id="toggleAdminSetupBtn" type="button" title="הגדרת OAuth Client ID" class="text-slate-400 hover:text-slate-600 transition">
+            <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+          </button>
+          <button id="createNewBoardBtn" type="button" class="text-rose-500 hover:underline font-medium">אפס לוח חדש</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Master Add Task -->
+  <div id="taskModal" class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-slate-100 relative text-right animate-in fade-in zoom-in-95 duration-200">
+      <button id="closeTaskModalBtn" class="absolute left-4 top-4 text-slate-400 hover:text-slate-600 p-1.5 rounded-full hover:bg-slate-100 transition">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <h3 class="text-base font-bold text-slate-800 mb-1">הוספת משימה חדשה</h3>
+      <p class="text-xs text-slate-500 mb-4">בחר את הרביע המתאים לפי דחיפות וחשיבות</p>
+
+      <form id="masterTaskForm" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-1">שם המשימה:</label>
+          <input id="modalTaskInput" type="text" required placeholder="מה המשימה שצריך לבצע?" class="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:ring-2 focus:ring-indigo-400 focus:outline-none">
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-slate-700 mb-2">לאיזה רביע לשייך?</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-pastel-redBorder bg-pastel-redBg/70 cursor-pointer hover:bg-pastel-redBg transition">
+              <input type="radio" name="quadrantSelect" value="q1" checked class="text-rose-500 focus:ring-rose-400">
+              <span class="font-medium text-slate-800">1. דחוף וחשוב</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-pastel-blueBorder bg-pastel-blueBg/70 cursor-pointer hover:bg-pastel-blueBg transition">
+              <input type="radio" name="quadrantSelect" value="q2" class="text-blue-500 focus:ring-blue-400">
+              <span class="font-medium text-slate-800">2. חשוב ולא דחוף</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-pastel-amberBorder bg-pastel-amberBg/70 cursor-pointer hover:bg-pastel-amberBg transition">
+              <input type="radio" name="quadrantSelect" value="q3" class="text-amber-500 focus:ring-amber-400">
+              <span class="font-medium text-slate-800">3. דחוף ולא חשוב</span>
+            </label>
+            <label class="flex items-center gap-2 p-2.5 rounded-xl border border-pastel-greenBorder bg-pastel-greenBg/70 cursor-pointer hover:bg-pastel-greenBg transition">
+              <input type="radio" name="quadrantSelect" value="q4" class="text-emerald-500 focus:ring-emerald-400">
+              <span class="font-medium text-slate-800">4. לא חשוב ולא דחוף</span>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white py-2.5 rounded-xl font-bold text-sm shadow-md transition duration-200">
+          הוסף משימה
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="fixed top-5 left-1/2 -translate-x-1/2 z-50 bg-slate-800 text-white text-xs sm:text-sm px-4 py-2 rounded-2xl shadow-floating opacity-0 pointer-events-none transition duration-300 flex items-center gap-2">
+    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+    <span id="toastMessage">פעולה בוצעה בהצלחה</span>
+    <button id="toastUndoBtn" class="hidden text-amber-300 hover:text-amber-200 underline font-semibold mr-2 px-1">בטל</button>
+  </div>
+
+  <!-- Sound Generator using Web Audio API (No external sound files required) -->
+  <script>
+    class SoundFX {
+      constructor() {
+        this.ctx = null;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      }
+      playPop() {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(450, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(800, this.ctx.currentTime + 0.1);
+          gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.1);
+        } catch (e) {}
+      }
+      playComplete() {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const notes = [523.25, 659.25, 783.99, 1046.50]; // C E G C chord
+          notes.forEach((freq, index) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            const startTime = this.ctx.currentTime + index * 0.07;
+            gain.gain.setValueAtTime(0.15, startTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + 0.4);
+          });
+        } catch (e) {}
+      }
+      playFanfare() {
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const notes = [440, 554, 659, 880];
+          notes.forEach((freq, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, this.ctx.currentTime + idx * 0.08);
+            gain.gain.setValueAtTime(0.25, this.ctx.currentTime + idx * 0.08);
+            gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + idx * 0.08 + 0.35);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(this.ctx.currentTime + idx * 0.08);
+            osc.stop(this.ctx.currentTime + idx * 0.08 + 0.35);
+          });
+        } catch (e) {}
+      }
+    }
+    const sound = new SoundFX();
+  </script>
+
+  <!-- Official Google Sign-In (OAuth 2.0) + Real Google Drive API v3 Sync + Guest Mode Engine -->
+  <script>
+    // =========================================================================
+    // הגדרת GOOGLE_CLIENT_ID:
+    // הדבק כאן פעם אחת את ה-Client ID מ-Google Cloud Console כדי שכל משתמש
+    // יוכל ללחוץ ישירות על "התחבר עם חשבון Google" בלי שום הגדרה נוספת.
+    // =========================================================================
+    const GOOGLE_CLIENT_ID = '';
+    const DRIVE_FILE_NAME = 'eisenhower_tasks_sync.json';
+    const GOOGLE_SCOPES = 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
+
+    // Global State
+    let localTasks = [];
+    let searchQuery = '';
+    let lastDeletedTask = null;
+    let lastDeletedIndex = -1;
+
+    // Persistent Google Account & Drive Sync State
+    let currentUser = null; // { email, displayName, fullName, picture } or null in Guest Mode
+    let googleAccessToken = null;
+    let googleTokenExpiry = 0;
+    let googleTokenClient = null;
+    let googleDriveFileId = null;
+    let lastCloudTimestamp = 0;
+    let isPushing = false;
+    let syncDebounceTimer = null;
+    let drivePollTimer = null;
+    let pendingSilentRefreshResolve = null;
+
+    // Default Seed Tasks (Shown on first launch in Guest Mode)
+    const initialSeedTasks = [
+      { id: '1', title: 'הגשת דוח תקציב רבעוני', quadrant: 'q1', completed: false, createdAt: 1700000010000 },
+      { id: '2', title: 'אימון כושר ותכנון שבועי', quadrant: 'q2', completed: false, createdAt: 1700000020000 },
+      { id: '3', title: 'מענה לשיחות ספק לא דחופות', quadrant: 'q3', completed: false, createdAt: 1700000030000 },
+      { id: '4', title: 'שיטוט אקראי ברשתות חברתיות', quadrant: 'q4', completed: true, createdAt: 1700000040000 }
+    ];
+
+    function getConfiguredClientId() {
+      if (GOOGLE_CLIENT_ID && GOOGLE_CLIENT_ID.trim()) {
+        return GOOGLE_CLIENT_ID.trim();
+      }
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const fromUrl = params.get('client_id');
+        if (fromUrl && fromUrl.trim()) {
+          localStorage.setItem('eisenhower_oauth_client_id', fromUrl.trim());
+          return fromUrl.trim();
+        }
+        const stored = localStorage.getItem('eisenhower_oauth_client_id');
+        if (stored && stored.trim()) return stored.trim();
+      } catch (e) {}
+      return '';
+    }
+
+    // Save tasks to LocalStorage safely (both main board and per-account / guest cache)
+    function saveTasksLocally() {
+      try {
+        localStorage.setItem('eisenhower_tasks', JSON.stringify(localTasks));
+        localStorage.setItem('eisenhower_initialized', 'true');
+        if (currentUser && currentUser.email) {
+          const snapshot = {
+            updatedAt: lastCloudTimestamp || Date.now(),
+            theme: typeof activeTheme !== 'undefined' ? activeTheme : 'classic',
+            tasks: localTasks
+          };
+          localStorage.setItem(`eisenhower_drive_cache_${currentUser.email}`, JSON.stringify(snapshot));
+        } else {
+          localStorage.setItem('eisenhower_guest_tasks', JSON.stringify(localTasks));
+        }
+      } catch (e) {}
+    }
+
+    // Merge Guest tasks into the user's Google Drive tasks upon sign-in
+    function mergeGuestAndDriveTasks(guestTasks, driveTasks) {
+      const safeGuest = Array.isArray(guestTasks) ? guestTasks : [];
+      const safeDrive = Array.isArray(driveTasks) ? driveTasks : [];
+
+      if (safeDrive.length === 0) {
+        return [...safeGuest];
+      }
+
+      const guestChangedByUser = localStorage.getItem('eisenhower_guest_modified') === 'true';
+      if (!guestChangedByUser) {
+        return [...safeDrive];
+      }
+
+      const mergedMap = new Map();
+      // 1. Keep all existing tasks from Google Drive
+      safeDrive.forEach(task => {
+        if (task && task.id) {
+          mergedMap.set(task.id, { ...task });
+        }
+      });
+
+      // 2. Add any tasks created or modified while in Guest Mode
+      safeGuest.forEach(gTask => {
+        if (!gTask || !gTask.id) return;
+        if (['1', '2', '3', '4'].includes(String(gTask.id)) && !gTask.modifiedByGuest) return;
+
+        const duplicateByTitle = safeDrive.some(
+          dTask => dTask.title.trim() === gTask.title.trim() && dTask.quadrant === gTask.quadrant
+        );
+        if (!mergedMap.has(gTask.id) && !duplicateByTitle) {
+          mergedMap.set(gTask.id, { ...gTask });
+        } else if (mergedMap.has(gTask.id)) {
+          const existing = mergedMap.get(gTask.id);
+          if ((gTask.updatedAt || gTask.createdAt || 0) > (existing.updatedAt || existing.createdAt || 0)) {
+            mergedMap.set(gTask.id, { ...gTask });
+          }
+        }
+      });
+
+      return Array.from(mergedMap.values());
+    }
+
+    // Initialize Google OAuth 2.0 Token Client
+    function initGoogleOAuthClient() {
+      const clientId = getConfiguredClientId();
+      if (!clientId) return false;
+      if (!(window.google && window.google.accounts && window.google.accounts.oauth2)) {
+        return false;
+      }
+
+      googleTokenClient = window.google.accounts.oauth2.initTokenClient({
+        client_id: clientId,
+        scope: GOOGLE_SCOPES,
+        callback: async (tokenResponse) => {
+          if (tokenResponse && tokenResponse.access_token) {
+            const wasGuestBefore = !currentUser;
+            const guestTasksSnapshot = [...localTasks];
+
+            googleAccessToken = tokenResponse.access_token;
+            const expiresInSec = parseInt(tokenResponse.expires_in || '3599', 10);
+            googleTokenExpiry = Date.now() + (expiresInSec * 1000);
+
+            try {
+              localStorage.setItem('eisenhower_google_token', googleAccessToken);
+              localStorage.setItem('eisenhower_google_token_expiry', String(googleTokenExpiry));
+            } catch (e) {}
+
+            if (pendingSilentRefreshResolve) {
+              const r = pendingSilentRefreshResolve;
+              pendingSilentRefreshResolve = null;
+              r(true);
+              return;
+            }
+
+            await fetchGoogleUserInfo();
+            updateAuthAndSyncUI('syncing');
+
+            if (wasGuestBefore) {
+              await syncAndMergeOnInitialSignIn(guestTasksSnapshot);
+            } else {
+              await pullTasksFromGoogleDrive();
+            }
+
+            startGoogleDrivePoller();
+            const modal = document.getElementById('syncModal');
+            if (modal) {
+              modal.classList.add('hidden');
+              modal.classList.remove('flex');
+            }
+          } else if (pendingSilentRefreshResolve) {
+            const r = pendingSilentRefreshResolve;
+            pendingSilentRefreshResolve = null;
+            r(false);
+          }
+        }
+      });
+      return true;
+    }
+
+    // Ensure valid access token (silently refreshes if expired while keeping user logged in)
+    async function ensureValidAccessToken() {
+      if (googleAccessToken && Date.now() < googleTokenExpiry - 30000) {
+        return true;
+      }
+      if (!currentUser) return false;
+      if (!googleTokenClient && !initGoogleOAuthClient()) return false;
+
+      return new Promise((resolve) => {
+        pendingSilentRefreshResolve = resolve;
+        try {
+          googleTokenClient.requestAccessToken({
+            prompt: '',
+            login_hint: currentUser.email || ''
+          });
+          setTimeout(() => {
+            if (pendingSilentRefreshResolve) {
+              pendingSilentRefreshResolve = null;
+              resolve(false);
+            }
+          }, 6000);
+        } catch (e) {
+          pendingSilentRefreshResolve = null;
+          resolve(false);
+        }
+      });
+    }
+
+    // Fetch real Google Account profile (name, email, picture)
+    async function fetchGoogleUserInfo() {
+      if (!googleAccessToken) return;
+      try {
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+        });
+        if (res.ok) {
+          const info = await res.json();
+          currentUser = {
+            email: info.email || '',
+            displayName: info.given_name || info.name || (info.email ? info.email.split('@')[0] : 'Google'),
+            fullName: info.name || info.given_name || info.email || 'משתמש Google',
+            picture: info.picture || ''
+          };
+          try {
+            // Saved permanently until explicit logout!
+            localStorage.setItem('eisenhower_google_user', JSON.stringify(currentUser));
+          } catch (e) {}
+        }
+      } catch (e) {}
+    }
+
+    // Find `eisenhower_tasks_sync.json` on the user's Google Drive server
+    async function findDriveFileId() {
+      if (!googleAccessToken) return null;
+      if (googleDriveFileId) return googleDriveFileId;
+
+      try {
+        const q = encodeURIComponent(`name='${DRIVE_FILE_NAME}' and trashed=false`);
+        const url = `https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&pageSize=1`;
+        const res = await fetch(url, {
+          headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+        });
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (data && Array.isArray(data.files) && data.files.length > 0) {
+          googleDriveFileId = data.files[0].id;
+          return googleDriveFileId;
+        }
+      } catch (e) {
+        return null;
+      }
+      return null;
+    }
+
+    // First-time sign-in: pull existing Drive file (if any), merge Guest Mode tasks, and save to Drive
+    async function syncAndMergeOnInitialSignIn(guestTasksSnapshot) {
+      try {
+        const fileId = await findDriveFileId();
+        let driveTasks = [];
+        let driveTheme = null;
+
+        if (fileId) {
+          const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+            headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+          });
+          if (res.ok) {
+            const driveData = await res.json();
+            if (driveData && Array.isArray(driveData.tasks)) {
+              driveTasks = driveData.tasks;
+            }
+            if (driveData && driveData.theme) {
+              driveTheme = driveData.theme;
+            }
+          }
+        }
+
+        // Merge guest tasks with Drive tasks
+        localTasks = mergeGuestAndDriveTasks(guestTasksSnapshot, driveTasks);
+        lastCloudTimestamp = Date.now();
+
+        if (driveTheme && typeof applyTheme === 'function') {
+          applyTheme(driveTheme, true);
+        }
+
+        try {
+          localStorage.removeItem('eisenhower_guest_modified');
+        } catch (e) {}
+
+        saveTasksLocally();
+        renderTasks();
+        await pushTasksToGoogleDrive();
+
+        sound.playComplete();
+        updateAuthAndSyncUI('connected');
+        showToast(`התחברת כ-${currentUser ? currentUser.displayName : ''}! המשימות נשמרו ב-Google Drive ☁️`);
+      } catch (e) {
+        updateAuthAndSyncUI('connected');
+      }
+    }
+
+    // Upload / Update `eisenhower_tasks_sync.json` directly in Google Drive
+    async function pushTasksToGoogleDrive() {
+      if (!currentUser || isPushing) return;
+      isPushing = true;
+      updateAuthAndSyncUI('syncing');
+
+      try {
+        const hasToken = await ensureValidAccessToken();
+        if (!hasToken) {
+          isPushing = false;
+          updateAuthAndSyncUI('connected');
+          return;
+        }
+
+        const now = Date.now();
+        lastCloudTimestamp = now;
+        const payload = {
+          updatedAt: now,
+          userEmail: currentUser.email,
+          theme: typeof activeTheme !== 'undefined' ? activeTheme : 'classic',
+          tasks: localTasks
+        };
+
+        const fileId = await findDriveFileId();
+        if (fileId) {
+          const res = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+            method: 'PATCH',
+            headers: {
+              'Authorization': `Bearer ${googleAccessToken}`,
+              'Content-Type': 'application/json; charset=UTF-8'
+            },
+            body: JSON.stringify(payload, null, 2)
+          });
+          if (!res.ok && res.status === 404) {
+            googleDriveFileId = null;
+          }
+        } else {
+          const metadata = {
+            name: DRIVE_FILE_NAME,
+            mimeType: 'application/json',
+            description: 'Eisenhower Matrix Tasks Sync File'
+          };
+          const boundary = '-------EisenhowerGoogleDriveMultipartBoundary9912';
+          const multipartBody =
+            `--${boundary}\r\n` +
+            `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+            `${JSON.stringify(metadata)}\r\n` +
+            `--${boundary}\r\n` +
+            `Content-Type: application/json; charset=UTF-8\r\n\r\n` +
+            `${JSON.stringify(payload, null, 2)}\r\n` +
+            `--${boundary}--`;
+
+          const res = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${googleAccessToken}`,
+              'Content-Type': `multipart/related; boundary=${boundary}`
+            },
+            body: multipartBody
+          });
+          if (res.ok) {
+            const created = await res.json();
+            if (created && created.id) {
+              googleDriveFileId = created.id;
+            }
+          }
+        }
+        saveTasksLocally();
+      } catch (e) {} finally {
+        isPushing = false;
+        updateAuthAndSyncUI('connected');
+      }
+    }
+
+    // Pull latest `eisenhower_tasks_sync.json` from Google Drive
+    async function pullTasksFromGoogleDrive() {
+      if (!currentUser || isPushing) return;
+
+      try {
+        const hasToken = await ensureValidAccessToken();
+        if (!hasToken) return;
+
+        const fileId = await findDriveFileId();
+        if (!fileId) {
+          await pushTasksToGoogleDrive();
+          return;
+        }
+
+        const res = await fetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`, {
+          headers: { 'Authorization': `Bearer ${googleAccessToken}` }
+        });
+        if (!res.ok) return;
+
+        const driveData = await res.json();
+        if (driveData && Array.isArray(driveData.tasks)) {
+          const remoteTime = driveData.updatedAt || 0;
+          if (remoteTime > lastCloudTimestamp) {
+            lastCloudTimestamp = remoteTime;
+            localTasks = driveData.tasks;
+            if (driveData.theme && typeof applyTheme === 'function' && driveData.theme !== activeTheme) {
+              applyTheme(driveData.theme, true);
+            }
+            saveTasksLocally();
+            renderTasks();
+          }
+        }
+        updateAuthAndSyncUI('connected');
+      } catch (e) {}
+    }
+
+    function scheduleDriveSync() {
+      if (!currentUser) return;
+      if (syncDebounceTimer) clearTimeout(syncDebounceTimer);
+      syncDebounceTimer = setTimeout(() => {
+        pushTasksToGoogleDrive();
+      }, 450);
+    }
+
+    function startGoogleDrivePoller() {
+      if (drivePollTimer) clearInterval(drivePollTimer);
+      drivePollTimer = setInterval(() => {
+        if (currentUser && document.visibilityState === 'visible') {
+          pullTasksFromGoogleDrive();
+        }
+      }, 8000);
+    }
+
+    window.addEventListener('focus', () => {
+      if (currentUser) pullTasksFromGoogleDrive();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && currentUser) {
+        pullTasksFromGoogleDrive();
+      }
+    });
+
+    // Update Header & Modal UI for Guest Mode vs Logged-In Google Account
+    function updateAuthAndSyncUI(syncStatus = 'idle') {
+      const indicator = document.getElementById('syncIndicator');
+      const headerLabel = document.getElementById('googleHeaderLabel');
+      const headerShortLabel = document.getElementById('googleHeaderShortLabel');
+      const headerUserAvatar = document.getElementById('headerUserAvatar');
+      const headerUserBadge = document.getElementById('headerUserBadge');
+      const googleHeaderIcon = document.getElementById('googleHeaderIcon');
+      const syncBtn = document.getElementById('syncModalBtn');
+
+      const guestView = document.getElementById('guestLoginView');
+      const accountView = document.getElementById('loggedInAccountView');
+      const footerDot = document.getElementById('syncFooterDot');
+      const footerText = document.getElementById('syncFooterText');
+      const guestCountBadge = document.getElementById('guestTasksCountBadge');
+
+      if (guestCountBadge) {
+        guestCountBadge.innerText = `${localTasks.length} משימות במכשיר`;
+      }
+
+      if (currentUser) {
+        if (guestView) guestView.classList.add('hidden');
+        if (accountView) accountView.classList.remove('hidden');
+
+        const initial = (currentUser.displayName || 'G').charAt(0).toUpperCase();
+        if (currentUser.picture && headerUserAvatar) {
+          headerUserAvatar.src = currentUser.picture;
+          headerUserAvatar.classList.remove('hidden');
+          if (headerUserBadge) {
+            headerUserBadge.classList.add('hidden');
+            headerUserBadge.classList.remove('flex');
+          }
+        } else {
+          if (headerUserAvatar) headerUserAvatar.classList.add('hidden');
+          if (headerUserBadge) {
+            headerUserBadge.innerText = initial;
+            headerUserBadge.classList.remove('hidden');
+            headerUserBadge.classList.add('flex');
+          }
+        }
+
+        if (googleHeaderIcon) googleHeaderIcon.classList.add('hidden');
+        if (headerLabel) headerLabel.innerText = currentUser.displayName;
+        if (headerShortLabel) headerShortLabel.innerText = currentUser.displayName;
+
+        if (syncBtn) {
+          syncBtn.classList.add('border-emerald-200', 'bg-emerald-50/40');
+          syncBtn.classList.remove('border-slate-200', 'bg-white');
+        }
+
+        const avatarImg = document.getElementById('accountAvatarImg');
+        const avatarEl = document.getElementById('accountAvatarInitial');
+        const nameEl = document.getElementById('accountDisplayName');
+        const emailEl = document.getElementById('accountEmailText');
+        const lastSyncInfo = document.getElementById('accountLastSyncInfo');
+
+        if (currentUser.picture && avatarImg) {
+          avatarImg.src = currentUser.picture;
+          avatarImg.classList.remove('hidden');
+          if (avatarEl) avatarEl.classList.add('hidden');
+        } else {
+          if (avatarImg) avatarImg.classList.add('hidden');
+          if (avatarEl) {
+            avatarEl.innerText = initial;
+            avatarEl.classList.remove('hidden');
+          }
+        }
+
+        if (nameEl) nameEl.innerText = currentUser.fullName || currentUser.displayName;
+        if (emailEl) emailEl.innerText = currentUser.email || '';
+
+        if (syncStatus === 'syncing') {
+          if (indicator) indicator.className = 'w-2 h-2 rounded-full bg-amber-400 animate-ping';
+          if (footerDot) footerDot.className = 'w-2 h-2 rounded-full bg-amber-400 inline-block';
+          if (footerText) footerText.innerText = 'שומר ב-Google Drive...';
+          if (lastSyncInfo) lastSyncInfo.innerText = 'שומר שינויים ב-Google Drive...';
+        } else {
+          if (indicator) indicator.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+          if (footerDot) footerDot.className = 'w-2 h-2 rounded-full bg-emerald-500 inline-block';
+          if (footerText) footerText.innerText = `מחובר ל-Drive (${currentUser.email})`;
+          const timeStr = new Date().toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+          if (lastSyncInfo) lastSyncInfo.innerText = `שמור ב-Google Drive שלך (עודכן ב-${timeStr})`;
+        }
+      } else {
+        if (guestView) guestView.classList.remove('hidden');
+        if (accountView) accountView.classList.add('hidden');
+
+        if (headerUserAvatar) headerUserAvatar.classList.add('hidden');
+        if (headerUserBadge) {
+          headerUserBadge.classList.add('hidden');
+          headerUserBadge.classList.remove('flex');
+        }
+        if (googleHeaderIcon) googleHeaderIcon.classList.remove('hidden');
+        if (headerLabel) headerLabel.innerText = 'מצב אורח • התחבר';
+        if (headerShortLabel) headerShortLabel.innerText = 'אורח • התחבר';
+
+        if (syncBtn) {
+          syncBtn.classList.remove('border-emerald-200', 'bg-emerald-50/40');
+          syncBtn.classList.add('border-slate-200', 'bg-white');
+        }
+
+        if (indicator) indicator.className = 'w-2 h-2 rounded-full bg-amber-400';
+        if (footerDot) footerDot.className = 'w-2 h-2 rounded-full bg-amber-400 inline-block';
+        if (footerText) footerText.innerText = 'מצב אורח (שמור על המכשיר)';
+      }
+    }
+
+    // Explicit Logout -> Return to Guest Mode
+    function logoutGoogleAccount() {
+      if (drivePollTimer) clearInterval(drivePollTimer);
+      if (googleAccessToken && window.google && window.google.accounts && window.google.accounts.oauth2) {
+        try {
+          window.google.accounts.oauth2.revoke(googleAccessToken, () => {});
+        } catch (e) {}
+      }
+      currentUser = null;
+      googleAccessToken = null;
+      googleTokenExpiry = 0;
+      googleDriveFileId = null;
+
+      try {
+        localStorage.removeItem('eisenhower_google_user');
+        localStorage.removeItem('eisenhower_google_token');
+        localStorage.removeItem('eisenhower_google_token_expiry');
+        localStorage.removeItem('eisenhower_guest_modified');
+      } catch (e) {}
+
+      updateAuthAndSyncUI('idle');
+      showToast('התנתקת מחשבון Google • עברת למצב אורח');
+    }
+
+    // Trigger save & sync on any task change
+    function syncToPeer() {
+      lastCloudTimestamp = Date.now();
+      if (!currentUser) {
+        try {
+          localStorage.setItem('eisenhower_guest_modified', 'true');
+        } catch (e) {}
+      }
+      saveTasksLocally();
+
+      // Cross-tab immediate sync
+      try {
+        if (window.BroadcastChannel) {
+          const bc = new BroadcastChannel('eisenhower_channel');
+          bc.postMessage({ tasks: localTasks });
+          bc.close();
+        }
+      } catch (e) {}
+
+      if (currentUser) {
+        scheduleDriveSync();
+      } else {
+        updateAuthAndSyncUI('idle');
+      }
+    }
+
+    // Initialize Tasks & Restore Persistent Google Session on page load
+    async function initAppSessionAndTasks() {
+      try {
+        const isInitialized = localStorage.getItem('eisenhower_initialized');
+        const cached = localStorage.getItem('eisenhower_tasks');
+
+        if (isInitialized && cached) {
+          localTasks = JSON.parse(cached);
+        } else if (!isInitialized && cached) {
+          localTasks = JSON.parse(cached);
+          localStorage.setItem('eisenhower_initialized', 'true');
+        } else {
+          localTasks = [...initialSeedTasks];
+          saveTasksLocally();
+        }
+      } catch (e) {
+        localTasks = [...initialSeedTasks];
+      }
+
+      // Populate admin Client ID input if previously saved
+      const currentCid = getConfiguredClientId();
+      const adminInput = document.getElementById('adminClientIdInput');
+      if (adminInput && currentCid) {
+        adminInput.value = currentCid;
+      }
+
+      // Restore persistent Google Account login (never logs out until explicit logout)
+      try {
+        const savedUserStr = localStorage.getItem('eisenhower_google_user');
+        const savedToken = localStorage.getItem('eisenhower_google_token');
+        const savedExpiry = parseInt(localStorage.getItem('eisenhower_google_token_expiry') || '0', 10);
+
+        if (savedUserStr) {
+          const parsedUser = JSON.parse(savedUserStr);
+          if (parsedUser && parsedUser.email) {
+            currentUser = parsedUser;
+            if (savedToken && savedExpiry > Date.now() + 15000) {
+              googleAccessToken = savedToken;
+              googleTokenExpiry = savedExpiry;
+            }
+            // Load cached Drive snapshot for this user immediately
+            const cachedDrive = localStorage.getItem(`eisenhower_drive_cache_${currentUser.email}`);
+            if (cachedDrive) {
+              const parsedCache = JSON.parse(cachedDrive);
+              if (parsedCache && Array.isArray(parsedCache.tasks)) {
+                localTasks = parsedCache.tasks;
+                lastCloudTimestamp = parsedCache.updatedAt || 0;
+              }
+            }
+            renderTasks();
+            updateAuthAndSyncUI('connected');
+            startGoogleDrivePoller();
+            setTimeout(() => {
+              pullTasksFromGoogleDrive();
+            }, 600);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      renderTasks();
+      updateAuthAndSyncUI('idle');
+
+      // Listen for local tab changes
+      if (window.BroadcastChannel) {
+        const bc = new BroadcastChannel('eisenhower_channel');
+        bc.onmessage = (ev) => {
+          if (ev.data && Array.isArray(ev.data.tasks)) {
+            localTasks = ev.data.tasks;
+            saveTasksLocally();
+            renderTasks();
+          }
+        };
+      }
+    }
+
+    // Save automatically before page unloads
+    window.addEventListener('beforeunload', () => {
+      saveTasksLocally();
+    });
+
+    // Add Task
+    window.addTask = function(title, quadrant = 'q1') {
+      if (!title || !title.trim()) return;
+      const now = Date.now();
+      const newTask = {
+        id: 'task_' + now + '_' + Math.random().toString(36).substr(2, 4),
+        title: title.trim(),
+        quadrant: quadrant,
+        completed: false,
+        createdAt: now,
+        updatedAt: now,
+        modifiedByGuest: !currentUser
+      };
+      localTasks.unshift(newTask);
+      sound.playPop();
+      renderTasks();
+      syncToPeer();
+      showToast('המשימה נוספה בהצלחה ✨');
+    };
+
+    // Toggle Complete
+    window.toggleTaskComplete = function(taskId) {
+      const task = localTasks.find(t => t.id === taskId);
+      if (task) {
+        task.completed = !task.completed;
+        task.updatedAt = Date.now();
+        if (!currentUser) task.modifiedByGuest = true;
+        if (task.completed) {
+          sound.playComplete();
+          triggerMiniConfetti();
+        }
+        renderTasks();
+        syncToPeer();
+      }
+    };
+
+    // Delete Task
+    window.deleteTask = function(taskId) {
+      const idx = localTasks.findIndex(t => t.id === taskId);
+      if (idx !== -1) {
+        lastDeletedTask = { ...localTasks[idx] };
+        lastDeletedIndex = idx;
+        localTasks.splice(idx, 1);
+        renderTasks();
+        syncToPeer();
+        showToast('המשימה נמחקה', true);
+      }
+    };
+
+    // Undo last deleted task
+    window.undoDeleteTask = function() {
+      if (lastDeletedTask) {
+        const insertIndex = (lastDeletedIndex >= 0 && lastDeletedIndex <= localTasks.length) 
+          ? lastDeletedIndex 
+          : 0;
+        localTasks.splice(insertIndex, 0, lastDeletedTask);
+        sound.playPop();
+        renderTasks();
+        syncToPeer();
+        lastDeletedTask = null;
+        lastDeletedIndex = -1;
+        showToast('המשימה שוחזרה בהצלחה ↩️');
+      }
+    };
+
+    // Move Task to another quadrant
+    window.moveTask = function(taskId, targetQuadrant) {
+      const task = localTasks.find(t => t.id === taskId);
+      if (task && task.quadrant !== targetQuadrant) {
+        task.quadrant = targetQuadrant;
+        task.updatedAt = Date.now();
+        if (!currentUser) task.modifiedByGuest = true;
+        sound.playPop();
+        renderTasks();
+        syncToPeer();
+      }
+    };
+
+    // Edit Task Title with inline input replacement
+    window.startInlineEdit = function(taskId) {
+      const task = localTasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const titleSpan = document.getElementById(`task-title-${taskId}`);
+      if (!titleSpan) return;
+
+      const currentText = task.title;
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = currentText;
+      input.className = 'w-full bg-slate-50 border border-indigo-300 rounded-lg px-2 py-0.5 text-xs sm:text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-400';
+
+      const save = () => {
+        const val = input.value.trim();
+        if (val && val !== currentText) {
+          task.title = val;
+          task.updatedAt = Date.now();
+          if (!currentUser) task.modifiedByGuest = true;
+          syncToPeer();
+          showToast('המשימה עודכנה ✨');
+        }
+        renderTasks();
+      };
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') save();
+        if (e.key === 'Escape') renderTasks();
+      });
+      input.addEventListener('blur', save);
+
+      titleSpan.replaceWith(input);
+      input.focus();
+      input.select();
+    };
+
+    // Clear completed tasks
+    window.clearCompletedTasks = function() {
+      const initialCount = localTasks.length;
+      localTasks = localTasks.filter(t => !t.completed);
+      if (localTasks.length < initialCount) {
+        sound.playPop();
+        renderTasks();
+        syncToPeer();
+        showToast('המשימות שהושלמו נוקו מהלוח 🧹');
+      } else {
+        showToast('אין משימות שהושלמו למחיקה');
+      }
+    };
+
+    // Update Progress Bar
+    function updateProgress() {
+      const total = localTasks.length;
+      const completed = localTasks.filter(t => t.completed).length;
+      const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+      const progressStats = document.getElementById('progressStats');
+      const progressBar = document.getElementById('progressBar');
+      if (progressStats) progressStats.innerText = `${completed}/${total} הושלמו (${percent}%)`;
+      if (progressBar) progressBar.style.width = `${percent}%`;
+
+      if (total > 0 && completed === total && !window._celebratedAll) {
+        window._celebratedAll = true;
+        triggerMiniConfetti();
+        showToast('וואו! כל המשימות הושלמו בהצלחה! 🏆');
+      } else if (completed < total) {
+        window._celebratedAll = false;
+      }
+    }
+
+    // Render Tasks in Matrix
+    function renderTasks() {
+      const lists = {
+        q1: document.getElementById('list-q1'),
+        q2: document.getElementById('list-q2'),
+        q3: document.getElementById('list-q3'),
+        q4: document.getElementById('list-q4')
+      };
+
+      const counts = { q1: 0, q2: 0, q3: 0, q4: 0 };
+      Object.values(lists).forEach(list => { if (list) list.innerHTML = ''; });
+
+      const filtered = localTasks.filter(task => {
+        if (!searchQuery) return true;
+        return task.title.toLowerCase().includes(searchQuery.toLowerCase());
+      });
+
+      const sorted = [...filtered].sort((a, b) => {
+        if (a.completed === b.completed) return b.createdAt - a.createdAt;
+        return a.completed ? 1 : -1;
+      });
+
+      sorted.forEach(task => {
+        const list = lists[task.quadrant];
+        if (!list) return;
+
+        counts[task.quadrant]++;
+
+        const card = document.createElement('div');
+        card.className = `task-card group flex items-center justify-between gap-2 p-3 rounded-2xl bg-white border border-slate-100 shadow-sm transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${task.completed ? 'opacity-60 bg-slate-50/80' : ''}`;
+        card.setAttribute('draggable', 'true');
+        card.dataset.id = task.id;
+
+        card.innerHTML = `
+          <div class="flex items-center gap-2.5 flex-1 min-w-0">
+            <span class="cursor-grab text-slate-300 hover:text-slate-500 hidden sm:inline-block select-none" title="גרור להעברה בין רביעים">
+              <i data-lucide="grip-vertical" class="w-3.5 h-3.5"></i>
+            </span>
+            <button onclick="window.toggleTaskComplete('${task.id}')" class="shrink-0 w-5 h-5 rounded-lg border-2 ${task.completed ? 'bg-emerald-500 border-emerald-500 text-white' : 'border-slate-300 hover:border-indigo-400'} flex items-center justify-center transition">
+              ${task.completed ? '<svg class="w-3.5 h-3.5 stroke-current stroke-[3]" viewBox="0 0 24 24" fill="none"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+            </button>
+            <div class="flex flex-col min-w-0 flex-1">
+              <span id="task-title-${task.id}" ondblclick="window.startInlineEdit('${task.id}')" title="לחץ פעמיים לעריכה" class="cursor-pointer text-xs sm:text-sm font-medium text-slate-700 truncate ${task.completed ? 'line-through text-slate-400' : ''}">
+                ${escapeHtml(task.title)}
+              </span>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1 opacity-90 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+            <div class="relative inline-flex items-center">
+              <select onchange="window.moveTask('${task.id}', this.value)" title="העבר לרביע אחר" class="text-[11px] font-medium bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600 rounded-lg px-2 py-1 border border-slate-200/80 focus:ring-1 focus:ring-indigo-300 cursor-pointer transition">
+                <option value="q1" ${task.quadrant === 'q1' ? 'selected' : ''}>1. דחוף וחשוב</option>
+                <option value="q2" ${task.quadrant === 'q2' ? 'selected' : ''}>2. חשוב ולא דחוף</option>
+                <option value="q3" ${task.quadrant === 'q3' ? 'selected' : ''}>3. דחוף ולא חשוב</option>
+                <option value="q4" ${task.quadrant === 'q4' ? 'selected' : ''}>4. לא חשוב ולא דחוף</option>
+              </select>
+            </div>
+            <button onclick="window.startInlineEdit('${task.id}')" class="text-slate-400 hover:text-indigo-600 p-1.5 rounded-lg transition hover:bg-slate-50" title="עריכה ישירה">
+              <i data-lucide="pencil" class="w-3.5 h-3.5"></i>
+            </button>
+            <button onclick="window.deleteTask('${task.id}')" class="text-slate-400 hover:text-rose-500 p-1.5 rounded-lg transition hover:bg-slate-50" title="מחיקה">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        `;
+
+        card.addEventListener('dragstart', (e) => {
+          card.classList.add('dragging');
+          e.dataTransfer.setData('text/plain', task.id);
+        });
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+        });
+
+        list.appendChild(card);
+      });
+
+      ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+        const badge = document.getElementById(`badge-${q}`);
+        const realCount = localTasks.filter(t => t.quadrant === q).length;
+        if (badge) badge.innerText = realCount;
+      });
+
+      Object.keys(lists).forEach(q => {
+        if (counts[q] === 0) {
+          lists[q].innerHTML = `
+            <div class="h-28 flex flex-col items-center justify-center text-slate-300 border-2 border-dashed border-slate-200/60 rounded-2xl p-4 text-center">
+              <span class="text-xs">${searchQuery ? 'לא נמצאו משימות תואמות' : 'אין משימות עדיין'}</span>
+              <span class="text-[10px] text-slate-400 mt-1">${searchQuery ? 'נסה מילת חיפוש אחרת' : 'הוסף משימה ראשונה למעלה'}</span>
+            </div>
+          `;
+        }
+      });
+
+      updateProgress();
+
+      const guestCountBadge = document.getElementById('guestTasksCountBadge');
+      if (guestCountBadge) {
+        guestCountBadge.innerText = `${localTasks.length} משימות במכשיר`;
+      }
+
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    }
+
+    function escapeHtml(string) {
+      const entityMap = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+      return String(string).replace(/[&<>"']/g, s => entityMap[s]);
+    }
+
+    // Search Input Listener
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value.trim();
+        renderTasks();
+      });
+    }
+
+    // Clear completed tasks handler
+    const clearCompletedBtn = document.getElementById('clearCompletedBtn');
+    if (clearCompletedBtn) {
+      clearCompletedBtn.addEventListener('click', () => {
+        window.clearCompletedTasks();
+      });
+    }
+
+    // Drag & Drop Setup for Dropzones
+    document.querySelectorAll('.quadrant-dropzone').forEach(zone => {
+      zone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        zone.classList.add('dragover');
+      });
+      zone.addEventListener('dragleave', () => {
+        zone.classList.remove('dragover');
+      });
+      zone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        zone.classList.remove('dragover');
+        const taskId = e.dataTransfer.getData('text/plain');
+        const targetQuadrant = zone.dataset.quadrant;
+        if (taskId && targetQuadrant) {
+          window.moveTask(taskId, targetQuadrant);
+        }
+      });
+    });
+
+    // Start Board & Session Engine
+    window.addEventListener('DOMContentLoaded', () => {
+      initAppSessionAndTasks();
+    });
+
+    // Open & Close Google Login / Drive Sync Modal
+    document.getElementById('syncModalBtn').addEventListener('click', () => {
+      document.getElementById('syncModal').classList.remove('hidden');
+      document.getElementById('syncModal').classList.add('flex');
+    });
+
+    document.getElementById('closeSyncModalBtn').addEventListener('click', () => {
+      document.getElementById('syncModal').classList.add('hidden');
+      document.getElementById('syncModal').classList.remove('flex');
+    });
+
+    document.getElementById('continueAsGuestBtn').addEventListener('click', () => {
+      document.getElementById('syncModal').classList.add('hidden');
+      document.getElementById('syncModal').classList.remove('flex');
+      showToast('ממשיך במצב אורח על המכשיר 👍');
+    });
+
+    // Trigger Official Google OAuth 2.0 Sign-In Popup
+    function triggerGoogleSignIn() {
+      const clientId = getConfiguredClientId();
+      if (!clientId) {
+        const setupPanel = document.getElementById('adminOAuthSetupPanel');
+        if (setupPanel) setupPanel.classList.remove('hidden');
+        const input = document.getElementById('adminClientIdInput');
+        if (input) input.focus();
+        showToast('נדרשת הגדרה חד-פעמית של Google Client ID לחיבור ל-Drive');
+        return;
+      }
+
+      if (initGoogleOAuthClient() && googleTokenClient) {
+        googleTokenClient.requestAccessToken({ prompt: 'select_account' });
+      } else {
+        showToast('טוען את חלון ההתחברות של Google, נסה שוב בעוד שניה...');
+      }
+    }
+
+    document.getElementById('googleRealSignInBtn').addEventListener('click', () => {
+      triggerGoogleSignIn();
+    });
+
+    // Toggle Admin One-Time Setup Panel
+    document.getElementById('toggleAdminSetupBtn').addEventListener('click', () => {
+      const setupPanel = document.getElementById('adminOAuthSetupPanel');
+      if (setupPanel) setupPanel.classList.toggle('hidden');
+    });
+
+    // Save Admin Client ID & Immediately Open Google Sign-In
+    document.getElementById('saveAdminClientIdBtn').addEventListener('click', () => {
+      const input = document.getElementById('adminClientIdInput');
+      const val = input ? input.value.trim() : '';
+      if (!val) {
+        showToast('נא להדביק Client ID תקין');
+        return;
+      }
+      try {
+        localStorage.setItem('eisenhower_oauth_client_id', val);
+      } catch (e) {}
+      const setupPanel = document.getElementById('adminOAuthSetupPanel');
+      if (setupPanel) setupPanel.classList.add('hidden');
+      triggerGoogleSignIn();
+    });
+
+    // Manual Sync Now Button
+    document.getElementById('manualSyncAccountBtn').addEventListener('click', async () => {
+      sound.playPop();
+      showToast('מסנכרן מול Google Drive...');
+      await pullTasksFromGoogleDrive();
+      await pushTasksToGoogleDrive();
+      showToast('הסנכרון מול Google Drive הושלם! ✅');
+    });
+
+    // Explicit Logout Button
+    document.getElementById('logoutAccountBtn').addEventListener('click', () => {
+      logoutGoogleAccount();
+    });
+
+    // Reset to clean board
+    document.getElementById('createNewBoardBtn').addEventListener('click', () => {
+      localTasks = [];
+      renderTasks();
+      syncToPeer();
+      document.getElementById('syncModal').classList.add('hidden');
+      document.getElementById('syncModal').classList.remove('flex');
+      showToast('נוצר לוח חדש ונקי ✨');
+    });
+  </script>
+
+  <!-- Interactive Controls, Quick Add, Filters, Confetti & Fireworks -->
+  <script>
+    // Quick Add input listeners in each quadrant
+    document.querySelectorAll('.quick-add-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const quadrant = btn.dataset.quadrant;
+        const input = document.querySelector(`.quick-add-input[data-quadrant="${quadrant}"]`);
+        if (input && input.value.trim()) {
+          window.addTask(input.value, quadrant);
+          input.value = '';
+          input.focus();
+        }
+      });
+    });
+
+    document.querySelectorAll('.quick-add-input').forEach(input => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const quadrant = input.dataset.quadrant;
+          if (input.value.trim()) {
+            window.addTask(input.value, quadrant);
+            input.value = '';
+            input.focus();
+          }
+        }
+      });
+    });
+
+    // Master Task Modal
+    const taskModal = document.getElementById('taskModal');
+    document.getElementById('openNewTaskModalBtn').addEventListener('click', () => {
+      taskModal.classList.remove('hidden');
+      taskModal.classList.add('flex');
+      document.getElementById('modalTaskInput').focus();
+    });
+
+    document.getElementById('closeTaskModalBtn').addEventListener('click', () => {
+      taskModal.classList.add('hidden');
+      taskModal.classList.remove('flex');
+    });
+
+    document.getElementById('masterTaskForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('modalTaskInput').value.trim();
+      const selectedQuadrant = document.querySelector('input[name="quadrantSelect"]:checked').value;
+      if (title) {
+        window.addTask(title, selectedQuadrant);
+        document.getElementById('modalTaskInput').value = '';
+        taskModal.classList.add('hidden');
+        taskModal.classList.remove('flex');
+      }
+    });
+
+    // Color Palettes Themes Engine
+    const colorThemes = {
+      classic: {
+        q1: { bg: 'rgba(255, 240, 240, 0.65)', border: '#FBC4C4', accent: '#E06D6D', accentBg: 'rgba(224, 109, 109, 0.18)' },
+        q2: { bg: 'rgba(240, 247, 255, 0.65)', border: '#BAE0FD', accent: '#4D96FF', accentBg: 'rgba(77, 150, 255, 0.18)' },
+        q3: { bg: 'rgba(255, 253, 240, 0.65)', border: '#FCEAB2', accent: '#E6A23C', accentBg: 'rgba(230, 162, 60, 0.18)' },
+        q4: { bg: 'rgba(242, 250, 245, 0.65)', border: '#BDE8CD', accent: '#52B788', accentBg: 'rgba(82, 183, 136, 0.18)' }
+      },
+      lavender: {
+        q1: { bg: 'rgba(251, 240, 255, 0.7)', border: '#E9D5FF', accent: '#A855F7', accentBg: 'rgba(168, 85, 247, 0.18)' },
+        q2: { bg: 'rgba(240, 244, 255, 0.7)', border: '#C7D2FE', accent: '#6366F1', accentBg: 'rgba(99, 102, 241, 0.18)' },
+        q3: { bg: 'rgba(255, 240, 245, 0.7)', border: '#FBCFE8', accent: '#EC4899', accentBg: 'rgba(236, 72, 153, 0.18)' },
+        q4: { bg: 'rgba(237, 251, 249, 0.7)', border: '#A7F3D0', accent: '#10B981', accentBg: 'rgba(16, 185, 129, 0.18)' }
+      },
+      nordic: {
+        q1: { bg: 'rgba(253, 243, 236, 0.7)', border: '#FED7AA', accent: '#F97316', accentBg: 'rgba(249, 115, 22, 0.18)' },
+        q2: { bg: 'rgba(240, 247, 246, 0.7)', border: '#B6E3DF', accent: '#0D9488', accentBg: 'rgba(13, 148, 136, 0.18)' },
+        q3: { bg: 'rgba(251, 248, 238, 0.7)', border: '#FEF08A', accent: '#CA8A04', accentBg: 'rgba(202, 138, 4, 0.18)' },
+        q4: { bg: 'rgba(239, 247, 237, 0.7)', border: '#C6F6D5', accent: '#38A169', accentBg: 'rgba(56, 161, 105, 0.18)' }
+      },
+      sunset: {
+        q1: { bg: 'rgba(255, 242, 235, 0.75)', border: '#FECDD3', accent: '#FB7185', accentBg: 'rgba(251, 113, 133, 0.18)' },
+        q2: { bg: 'rgba(243, 242, 255, 0.75)', border: '#DDD6FE', accent: '#8B5CF6', accentBg: 'rgba(139, 92, 246, 0.18)' },
+        q3: { bg: 'rgba(255, 249, 230, 0.75)', border: '#FDE68A', accent: '#F59E0B', accentBg: 'rgba(245, 158, 11, 0.18)' },
+        q4: { bg: 'rgba(235, 249, 247, 0.75)', border: '#99F6E4', accent: '#14B8A6', accentBg: 'rgba(20, 184, 166, 0.18)' }
+      }
+    };
+
+    let activeTheme = 'classic';
+
+    function applyTheme(themeKey, skipSync = false) {
+      const theme = colorThemes[themeKey] || colorThemes.classic;
+      activeTheme = themeKey;
+      try {
+        localStorage.setItem('eisenhower_theme', themeKey);
+      } catch (e) {}
+
+      ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+        const card = document.getElementById(`quadrant-${q}`);
+        if (!card) return;
+        const conf = theme[q];
+        card.style.backgroundColor = conf.bg;
+        card.style.borderColor = conf.border;
+
+        const header = card.querySelector('div:first-child');
+        if (header) header.style.borderColor = conf.border;
+
+        const numBadge = header ? header.querySelector('span:first-child') : null;
+        if (numBadge) {
+          numBadge.style.backgroundColor = conf.accentBg;
+          numBadge.style.color = conf.accent;
+        }
+
+        const countBadge = document.getElementById(`badge-${q}`);
+        if (countBadge) {
+          countBadge.style.borderColor = conf.border;
+          countBadge.style.color = conf.accent;
+        }
+
+        const input = card.querySelector('.quick-add-input');
+        if (input) input.style.borderColor = conf.border;
+
+        const addBtn = card.querySelector('.quick-add-btn');
+        if (addBtn) addBtn.style.backgroundColor = conf.accent;
+      });
+
+      // Update modal checkmarks
+      document.querySelectorAll('.theme-select-btn').forEach(btn => {
+        const isCurrent = btn.dataset.theme === themeKey;
+        const check = btn.querySelector('.theme-check');
+        if (check) check.classList.toggle('hidden', !isCurrent);
+        btn.classList.toggle('border-indigo-500', isCurrent);
+        btn.classList.toggle('bg-indigo-50/30', isCurrent);
+        btn.classList.toggle('border-slate-200', !isCurrent);
+      });
+
+      if (!skipSync && currentUser) {
+        scheduleDriveSync();
+      }
+    }
+
+    // Palette modal events
+    const paletteModal = document.getElementById('paletteModal');
+    const paletteModalBtn = document.getElementById('paletteModalBtn');
+    const closePaletteModalBtn = document.getElementById('closePaletteModalBtn');
+
+    if (paletteModalBtn) {
+      paletteModalBtn.addEventListener('click', () => {
+        paletteModal.classList.remove('hidden');
+        paletteModal.classList.add('flex');
+      });
+    }
+
+    if (closePaletteModalBtn) {
+      closePaletteModalBtn.addEventListener('click', () => {
+        paletteModal.classList.add('hidden');
+        paletteModal.classList.remove('flex');
+      });
+    }
+
+    document.querySelectorAll('.theme-select-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.dataset.theme;
+        applyTheme(theme, false);
+        sound.playPop();
+        showToast('ערכת הצבעים עודכנה בהצלחה 🎨');
+        paletteModal.classList.add('hidden');
+        paletteModal.classList.remove('flex');
+      });
+    });
+
+    // Apply saved or default theme initially
+    try {
+      const savedTheme = localStorage.getItem('eisenhower_theme');
+      applyTheme(savedTheme || 'classic', true);
+    } catch (e) {
+      applyTheme('classic', true);
+    }
+
+    // Mobile 2x2 Grid vs List Layout Toggle
+    let isMobileGridMode = false;
+    const mobileLayoutToggleBtn = document.getElementById('mobileLayoutToggleBtn');
+    const mainGridContainer = document.getElementById('mainGridContainer');
+
+    if (mobileLayoutToggleBtn && mainGridContainer) {
+      mobileLayoutToggleBtn.addEventListener('click', () => {
+        isMobileGridMode = !isMobileGridMode;
+        if (isMobileGridMode) {
+          mainGridContainer.classList.remove('grid-cols-1');
+          mainGridContainer.classList.add('grid-cols-2');
+          ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+            const el = document.getElementById(`quadrant-${q}`);
+            if (el) el.classList.remove('hidden');
+          });
+          mobileLayoutToggleBtn.classList.add('bg-indigo-50', 'border-indigo-300');
+          showToast('תצוגת רשת 2x2 מופעלת 🔲');
+        } else {
+          mainGridContainer.classList.add('grid-cols-1');
+          mainGridContainer.classList.remove('grid-cols-2');
+          mobileLayoutToggleBtn.classList.remove('bg-indigo-50', 'border-indigo-300');
+          showToast('תצוגת רשימה מופעלת ↕️');
+        }
+        if (window.lucide) lucide.createIcons();
+      });
+    }
+
+    // PDF Export / Print Handler
+    const exportPdfBtn = document.getElementById('exportPdfBtn');
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener('click', () => {
+        ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+          const el = document.getElementById(`quadrant-${q}`);
+          if (el) el.classList.remove('hidden');
+        });
+        window.print();
+      });
+    }
+
+    // Toast notification function with optional Undo button
+    let toastTimeout = null;
+    function showToast(message, allowUndo = false) {
+      const toast = document.getElementById('toast');
+      const toastMessage = document.getElementById('toastMessage');
+      const undoBtn = document.getElementById('toastUndoBtn');
+
+      toastMessage.innerText = message;
+
+      if (allowUndo) {
+        undoBtn.classList.remove('hidden');
+        toast.classList.remove('pointer-events-none');
+      } else {
+        undoBtn.classList.add('hidden');
+        toast.classList.add('pointer-events-none');
+      }
+
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+
+      if (toastTimeout) clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+        toast.classList.add('pointer-events-none');
+        undoBtn.classList.add('hidden');
+      }, allowUndo ? 4500 : 2500);
+    }
+
+    // Attach Undo button listener
+    document.getElementById('toastUndoBtn').addEventListener('click', () => {
+      window.undoDeleteTask();
+      const toast = document.getElementById('toast');
+      toast.classList.remove('opacity-100');
+      toast.classList.add('opacity-0');
+      toast.classList.add('pointer-events-none');
+    });
+
+    // Mobile View Filter Switcher
+    const mobileTabs = document.querySelectorAll('.mobile-tab-btn');
+    mobileTabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        mobileTabs.forEach(t => {
+          t.classList.remove('bg-white', 'shadow-sm', 'text-slate-800');
+          t.classList.add('text-slate-600');
+        });
+        tab.classList.add('bg-white', 'shadow-sm', 'text-slate-800');
+        tab.classList.remove('text-slate-600');
+
+        const filter = tab.dataset.filter;
+        ['q1', 'q2', 'q3', 'q4'].forEach(q => {
+          const el = document.getElementById(`quadrant-${q}`);
+          if (filter === 'all' || filter === q) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        });
+      });
+    });
+
+    // Mini confetti on single task completion
+    function triggerMiniConfetti() {
+      if (window.confetti) {
+        confetti({
+          particleCount: 40,
+          spread: 60,
+          origin: { y: 0.8 },
+          colors: ['#FBC4C4', '#BAE0FD', '#FCEAB2', '#BDE8CD', '#818CF8']
+        });
+      }
+    }
+
+    // Grand Fireworks Celebration
+    const fireworksBtn = document.getElementById('fireworksBtn');
+    fireworksBtn.addEventListener('click', () => {
+      sound.playFanfare();
+      launchGrandFireworks();
+      showToast('כל הכבוד! מגיע לך לחגוג בגדול 🏆');
+    });
+
+    // Custom Canvas & Confetti Fireworks Engine
+    function launchGrandFireworks() {
+      if (!window.confetti) return;
+
+      const duration = 3.5 * 1000;
+      const animationEnd = Date.now() + duration;
+      const defaults = { startVelocity: 35, spread: 360, ticks: 70, zIndex: 10000 };
+
+      function randomInRange(min, max) {
+        return Math.random() * (max - min) + min;
+      }
+
+      const interval = setInterval(function() {
+        const timeLeft = animationEnd - Date.now();
+
+        if (timeLeft <= 0) {
+          return clearInterval(interval);
+        }
+
+        const particleCount = 60 * (timeLeft / duration);
+
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
+          colors: ['#FF6B6B', '#4D96FF', '#FFD93D', '#6BCB77', '#9D4EDD']
+        });
+        confetti({
+          ...defaults,
+          particleCount,
+          origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
+          colors: ['#FF6B6B', '#4D96FF', '#FFD93D', '#6BCB77', '#9D4EDD']
+        });
+      }, 250);
+
+      confetti({
+        particleCount: 100,
+        spread: 100,
+        origin: { y: 0.9, x: 0.5 },
+        shapes: ['circle', 'square'],
+        scalar: 1.2,
+        colors: ['#FFDF00', '#FF4D6D', '#70E000', '#0096C7']
+      });
+    }
+
+    // Initialize Lucide Icons
+    window.addEventListener('load', () => {
+      if (window.lucide) {
+        lucide.createIcons();
+      }
+    });
+  </script>
+</body>
+</html>
